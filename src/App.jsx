@@ -271,7 +271,7 @@ export default function App() {
         alignItems: "center",
       }}
     >
-      <h1>🎙️ Voice Assistant</h1>
+      <h1>Welcome to Sapphire</h1>
 
       <VoiceVisualizer audioRef={audioRef} isSpeaking={isSpeaking} />
 
