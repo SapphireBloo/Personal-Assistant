@@ -1,12 +1,12 @@
-/* index.css */
-body, html, #root {
-  margin: 0; padding: 0;
+html, body, #root {
+  margin: 0;
+  padding: 0;
   height: 100%;
-  background-color: #000000; /* pure black */
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #e0e0e0;
+  background-color: black; /* this is okay */
+}
+
+#root > div:first-child {
+  height: 100%;
 }

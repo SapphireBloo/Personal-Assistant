@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import VantaBackground from "./VantaBackground";
+
 
 const ELEVENLABS_API_KEY = "sk_b193185ff7e46dcc02ddff6ee5f634ef75973617bd8caefa";
 const OPENAI_API_KEY = "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";
-const ELEVENLABS_VOICE_ID = "7p1Ofvcwsv7UBPoFNcpI"; // Default voice
+const ELEVENLABS_VOICE_ID = "7p1Ofvcwsv7UBPoFNcpI";
 
 function VoiceVisualizer({ audioRef, isSpeaking }) {
   const canvasRef = useRef(null);
@@ -23,7 +25,6 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
     const centerY = height / 2;
     const baseRadius = 80;
 
-    // Create or reuse AudioContext & Analyser only once per component lifecycle
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -31,18 +32,14 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
       dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
     }
 
-    // Connect source if speaking and not connected yet
     if (isSpeaking && audioRef.current && !sourceRef.current) {
       try {
         sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
         sourceRef.current.connect(analyserRef.current);
         analyserRef.current.connect(audioContextRef.current.destination);
-      } catch {
-        // Already connected or context suspended
-      }
+      } catch {}
     }
 
-    // The main drawing loop:
     const draw = () => {
       animationId.current = requestAnimationFrame(draw);
       ctx.clearRect(0, 0, width, height);
@@ -53,7 +50,6 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
 
         const glowRadius = baseRadius + avg / 2;
 
-        // Outer glowing ring reacting to audio
         const gradient = ctx.createRadialGradient(
           centerX,
           centerY,
@@ -73,7 +69,6 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
         ctx.shadowBlur = 20;
         ctx.stroke();
 
-        // Inner static ring
         ctx.beginPath();
         ctx.arc(centerX, centerY, baseRadius, 0, Math.PI * 2);
         ctx.strokeStyle = "#0f52ba";
@@ -83,15 +78,11 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
         ctx.stroke();
 
       } else {
-        // Idle animation: wavy, pulsing ring
         wavePhase.current += 0.05;
-
-        // Pulse radius oscillates between 70 and 90
         const pulse = baseRadius + 10 * Math.sin(wavePhase.current * 2);
-
         const points = 64;
-        const waveAmplitude = 10; // wave height
-        const waveFrequency = 6;  // number of waves around circle
+        const waveAmplitude = 10;
+        const waveFrequency = 6;
 
         ctx.beginPath();
         for (let i = 0; i <= points; i++) {
@@ -104,7 +95,6 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
         }
         ctx.closePath();
 
-        // Gradient stroke for wavy ring
         const gradient = ctx.createRadialGradient(centerX, centerY, pulse * 0.7, centerX, centerY, pulse + waveAmplitude);
         gradient.addColorStop(0, "rgba(15,82,186, 0.8)");
         gradient.addColorStop(1, "rgba(15,82,186, 0)");
@@ -115,7 +105,6 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
         ctx.shadowBlur = 20;
         ctx.stroke();
 
-        // Inner static ring
         ctx.beginPath();
         ctx.arc(centerX, centerY, baseRadius, 0, Math.PI * 2);
         ctx.strokeStyle = "#0f52ba";
@@ -130,22 +119,12 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
 
     return () => {
       cancelAnimationFrame(animationId.current);
-      // Only close audio context if component unmounts entirely (optional)
-      // audioContextRef.current?.close();
       ctx.clearRect(0, 0, width, height);
     };
   }, [isSpeaking, audioRef]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      width={300}
-      height={300}
-      style={{ display: "block", margin: "40px auto" }}
-    />
-  );
+  return <canvas ref={canvasRef} width={300} height={300} style={{ display: "block", margin: "40px auto" }} />;
 }
-
 
 export default function App() {
   const [listening, setListening] = useState(false);
@@ -155,6 +134,7 @@ export default function App() {
   const [typedText, setTypedText] = useState("");
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
+  
 
   useEffect(() => {
     if (!("SpeechRecognition" in window) && !("webkitSpeechRecognition" in window)) {
@@ -259,20 +239,35 @@ export default function App() {
   }
 
   return (
+  <>
+    {/* VantaBackground should fill the entire viewport behind everything */}
+    <VantaBackground 
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 0,
+        pointerEvents: "none" // so it doesn't block clicks
+      }}
+    />
+
+    {/* Main content container with higher z-index */}
     <div
       style={{
+        position: "relative",
         padding: 20,
         fontFamily: "Arial, sans-serif",
-        backgroundColor: "#000",
         color: "#e0e0e0",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        zIndex: 1,
       }}
     >
       <h1>Welcome to Sapphire</h1>
-
       <VoiceVisualizer audioRef={audioRef} isSpeaking={isSpeaking} />
 
       <div
@@ -349,5 +344,7 @@ export default function App() {
 
       <audio ref={audioRef} />
     </div>
-  );
+  </>
+);
+
 }
