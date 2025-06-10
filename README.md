@@ -1,12 +1,61 @@
-# React + Vite
+# 🎙️ Voice Assistant App (Under Construction)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive, web-based voice assistant powered by **OpenAI** and **ElevenLabs**, featuring a glowing visualizer that reacts in real time to audio output.
 
-Currently, two official plugins are available:
+> ⚠️ This project is currently **under active development**. Features and design may change frequently.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## ✨ Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- 🎤 **Voice Recognition** via Web Speech API  
+- 🤖 **GPT-3.5 Turbo** integration for smart responses  
+- 🗣️ **ElevenLabs** text-to-speech synthesis  
+- 💫 **Pulsing Ring Visualizer** that reacts to speaking  
+- ⌨️ **Manual text input** fallback for accessibility  
+- 🎨 **Dark Mode UI** for modern, sleek aesthetics
+
+---
+
+## 🧪 Technologies Used
+
+- **React** + **Vite**
+- **OpenAI API**
+- **ElevenLabs TTS API**
+- **Web Speech API**
+- **Canvas API** (for glowing ring visualizer)
+- **CSS-in-JS** styling
+
+---
+
+## 🚧 Development Status
+
+This app is in an experimental phase. Planned improvements include:
+
+- 💡 Smarter speech feedback loop
+- 📱 Responsive mobile design
+- 🔈 Microphone-level visualizer
+- 💾 Chat memory/history
+- 🔐 API key security via backend proxy
+
+---
+
+## 📸 Preview
+
+> Visual examples coming soon…
+
+---
+
+## 🧠 License & Credits
+
+MIT License
+
+- Speech by [ElevenLabs](https://www.elevenlabs.io/)
+- AI responses by [OpenAI](https://openai.com/)
+- Visual inspiration from modern AI interfaces
+
+---
+
+## 📌 Status Badge
+
+![Status: In Progress](https://img.shields.io/badge/status-under_construction-orange)
