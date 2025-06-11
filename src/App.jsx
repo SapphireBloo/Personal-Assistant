@@ -3,7 +3,7 @@ import VantaBackground from "./VantaBackground";
 
 
 const ELEVENLABS_API_KEY = "sk_b193185ff7e46dcc02ddff6ee5f634ef75973617bd8caefa";
-const OPENAI_API_KEY = "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";
+const CEREBRAS_API_KEY = "csk-h3cckk6vmk9nj3m383ceet2j9rrkcdr5w9yv3phn4tk449r3";
 const ELEVENLABS_VOICE_ID = "7p1Ofvcwsv7UBPoFNcpI";
 
 function VoiceVisualizer({ audioRef, isSpeaking }) {
@@ -134,6 +134,8 @@ export default function App() {
   const [typedText, setTypedText] = useState("");
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
+  const speechQueue = useRef([]);
+  const speakingRef = useRef(false);
   
 
   useEffect(() => {
@@ -182,61 +184,121 @@ export default function App() {
   };
 
   async function handleUserInput(text) {
-    try {
-      const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+  try {
+    setAssistantText("");
+    const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CEREBRAS_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-4-scout-17b-16e-instruct",
+        messages: [{ role: "user", content: text }],
+        stream: true,
+      }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let phraseBuffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n").filter(Boolean);
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const json = JSON.parse(line.replace("data: ", ""));
+          const token = json.choices?.[0]?.delta?.content;
+
+          if (token) {
+            setAssistantText((prev) => prev + token);
+            phraseBuffer += token;
+
+            if (/[.!?]\s$/.test(phraseBuffer) || phraseBuffer.length > 80) {
+              await speakIncrementally(phraseBuffer.trim());
+              phraseBuffer = "";
+            }
+          }
+        }
+      }
+
+      buffer = ""; // Clear buffer each loop
+    }
+
+    if (phraseBuffer) {
+      await speakIncrementally(phraseBuffer.trim());
+    }
+
+  } catch (error) {
+  console.error("Streaming error:", error);
+  setIsSpeaking(false);
+  // Only show fallback text if nothing was received
+  setAssistantText((prev) => prev.trim() ? prev : "Sorry, I had trouble understanding that.");
+}
+
+}
+
+
+  async function speakIncrementally(text) {
+  speechQueue.current.push(text);
+  if (!speakingRef.current) {
+    playNextSpeech();
+  }
+}
+
+async function playNextSpeech() {
+  if (speechQueue.current.length === 0) {
+    speakingRef.current = false;
+    setIsSpeaking(false);
+    return;
+  }
+
+  speakingRef.current = true;
+  setIsSpeaking(true);
+  const text = speechQueue.current.shift();
+
+  try {
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
+      {
         method: "POST",
         headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: text }],
+          text,
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
         }),
-      });
-
-      const data = await aiResponse.json();
-      const reply = data.choices[0].message.content.trim();
-      setAssistantText(reply);
-      await speakWithElevenLabs(reply);
-    } catch (error) {
-      console.error("Error:", error);
-      setAssistantText("Sorry, I had trouble understanding that.");
-    }
-  }
-
-  async function speakWithElevenLabs(text) {
-    try {
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-        {
-          method: "POST",
-          headers: {
-            "xi-api-key": ELEVENLABS_API_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            text,
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error("ElevenLabs TTS request failed");
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.play();
-        setIsSpeaking(true);
-        audioRef.current.onended = () => setIsSpeaking(false);
       }
-    } catch (error) {
-      console.error("ElevenLabs error:", error);
-      setIsSpeaking(false);
+    );
+
+    if (!response.ok) {
+      console.error("TTS error", await response.text());
+      playNextSpeech(); // skip to next
+      return;
     }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+
+    audio.onended = () => playNextSpeech();
+    audio.onerror = () => playNextSpeech();
+
+    await audio.play();
+  } catch (err) {
+    console.error("TTS playback error:", err);
+    playNextSpeech();
   }
+}
+
 
   return (
   <>
