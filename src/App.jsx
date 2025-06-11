@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import VantaBackground from "./VantaBackground";
 import WeatherWidget from "./components/WeatherWidget";
+import SidebarMenu from "./components/SidebarMenu";
+
+
 
 
 const ELEVENLABS_API_KEY = "sk_b193185ff7e46dcc02ddff6ee5f634ef75973617bd8caefa";
@@ -316,6 +319,15 @@ async function playNextSpeech() {
         pointerEvents: "none" // so it doesn't block clicks
       }}
     />
+<SidebarMenu
+  buttons={[
+    { label: "Sign up" },
+    { label: "Sign in" },
+    { label: "Chat History" },
+    { label: "Help" },
+  ]}
+/>
+
 
     <WeatherWidget />
 
