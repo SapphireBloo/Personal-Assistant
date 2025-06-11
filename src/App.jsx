@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import VantaBackground from "./VantaBackground";
+import WeatherWidget from "./components/WeatherWidget";
 
 
 const ELEVENLABS_API_KEY = "sk_b193185ff7e46dcc02ddff6ee5f634ef75973617bd8caefa";
@@ -137,6 +138,7 @@ export default function App() {
   const speechQueue = useRef([]);
   const speakingRef = useRef(false);
   
+
 
   useEffect(() => {
     if (!("SpeechRecognition" in window) && !("webkitSpeechRecognition" in window)) {
@@ -314,6 +316,9 @@ async function playNextSpeech() {
         pointerEvents: "none" // so it doesn't block clicks
       }}
     />
+
+    <WeatherWidget />
+
 
     {/* Main content container with higher z-index */}
     <div
