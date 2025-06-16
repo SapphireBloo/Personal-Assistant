@@ -4,9 +4,10 @@ import WeatherWidget from "./components/WeatherWidget";
 import SidebarMenu from "./components/SidebarMenu";
 import VoiceVisualizer from "./components/VoiceVisualizer";
 
-const ELEVENLABS_API_KEY = "sk_b193185ff7e46dcc02ddff6ee5f634ef75973617bd8caefa";
-const CEREBRAS_API_KEY = "csk-h3cckk6vmk9nj3m383ceet2j9rrkcdr5w9yv3phn4tk449r3";
-const ELEVENLABS_VOICE_ID = "7p1Ofvcwsv7UBPoFNcpI";
+const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
+const CEREBRAS_API_KEY = import.meta.env.VITE_CEREBRAS_API_KEY;
+const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
+
 
 export default function App() {
   const [listening, setListening] = useState(false);
