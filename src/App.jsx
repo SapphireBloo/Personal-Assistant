@@ -3,6 +3,9 @@ import VantaBackground from "./VantaBackground";
 import WeatherWidget from "./components/WeatherWidget";
 import SidebarMenu from "./components/SidebarMenu";
 import VoiceVisualizer from "./components/VoiceVisualizer";
+import { auth, db } from "./firebase";
+import { collection, addDoc } from "firebase/firestore";
+
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const CEREBRAS_API_KEY = import.meta.env.VITE_CEREBRAS_API_KEY;
@@ -68,72 +71,78 @@ export default function App() {
   };
 
   async function handleUserInput(text) {
-    try {
-      setAssistantText("");
-      const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${CEREBRAS_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-4-scout-17b-16e-instruct",
-          messages: [{ role: "user", content: text }],
-          stream: true,
-        }),
-      });
+  try {
+    setAssistantText("");
+    let fullAssistantText = ""; // 👈 capture final response
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-      let phraseBuffer = "";
+    const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CEREBRAS_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-4-scout-17b-16e-instruct",
+        messages: [{ role: "user", content: text }],
+        stream: true,
+      }),
+    });
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let phraseBuffer = "";
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n").filter(Boolean);
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
 
-        for (const line of lines) {
-  if (line.startsWith("data: ")) {
-    const jsonStr = line.replace("data: ", "");
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n").filter(Boolean);
 
-    try {
-      const json = JSON.parse(jsonStr);
-      const token = json.choices?.[0]?.delta?.content;
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const jsonStr = line.replace("data: ", "");
+          try {
+            const json = JSON.parse(jsonStr);
+            const token = json.choices?.[0]?.delta?.content;
+            if (token) {
+              setAssistantText((prev) => prev + token);
+              fullAssistantText += token;
+              phraseBuffer += token;
 
-      if (token) {
-        setAssistantText((prev) => prev + token);
-        phraseBuffer += token;
-
-        if (/[.!?]\s$/.test(phraseBuffer) || phraseBuffer.length > 80) {
-          if (voiceEnabled) {
-            await speakIncrementally(phraseBuffer.trim());
+              if (/[.!?]\s$/.test(phraseBuffer) || phraseBuffer.length > 80) {
+                if (voiceEnabled) {
+                  await speakIncrementally(phraseBuffer.trim());
+                }
+                phraseBuffer = "";
+              }
+            }
+          } catch (err) {
+            console.warn("Skipping invalid JSON line:", jsonStr);
           }
-          phraseBuffer = "";
         }
       }
-    } catch (err) {
-      console.warn("Skipping invalid JSON line:", jsonStr);
+
+      buffer = "";
     }
+
+    if (phraseBuffer && voiceEnabled) {
+      await speakIncrementally(phraseBuffer.trim());
+    }
+
+    // ✅ Save to Firestore
+    if (auth.currentUser) {
+      await saveChat(text, fullAssistantText.trim());
+    }
+
+  } catch (error) {
+    console.error("Streaming error:", error);
+    setIsSpeaking(false);
+    setAssistantText((prev) => prev.trim() ? prev : "Sorry, I had trouble understanding that.");
   }
 }
 
-
-        buffer = "";
-      }
-
-      if (phraseBuffer && voiceEnabled) {
-        await speakIncrementally(phraseBuffer.trim());
-      }
-
-    } catch (error) {
-      console.error("Streaming error:", error);
-      setIsSpeaking(false);
-      setAssistantText((prev) => prev.trim() ? prev : "Sorry, I had trouble understanding that.");
-    }
-  }
 
   async function speakIncrementally(text) {
     if (!voiceEnabled) return;
@@ -142,6 +151,23 @@ export default function App() {
       playNextSpeech();
     }
   }
+
+  async function saveChat(userMessage, assistantMessage) {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    await addDoc(collection(db, "chats"), {
+      uid: user.uid,
+      userMessage,
+      assistantMessage,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Error saving chat:", error);
+  }
+}
+
 
   async function playNextSpeech() {
     if (speechQueue.current.length === 0) {

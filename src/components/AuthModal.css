@@ -50,8 +50,8 @@
 
 .auth-modal .close-btn {
   position: absolute;
-  right: -60px;
-  top: 12px;
+  right: -80px;
+  top: -10px;
   background: transparent;
   border: none;
   font-size: 1.5rem;
