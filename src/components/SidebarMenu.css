@@ -73,3 +73,8 @@
   gap: 1em;
 }
 
+.user-info {
+  color: #ebecec;
+  margin-bottom: 0.75rem; /* Optional spacing */
+  font-weight: 500;
+}
