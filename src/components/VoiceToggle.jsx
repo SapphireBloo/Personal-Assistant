@@ -1,19 +1,30 @@
 import React from "react";
 import "./VoiceToggle.css";
 
-export default function VoiceToggle({ voiceEnabled, setVoiceEnabled }) {
+function VoiceToggle({ voiceEnabled, setVoiceEnabled, user }) {
+  const handleChange = () => {
+    if (!user && !voiceEnabled) {
+      alert("Please sign up or sign in to enable voice.");
+      return;
+    }
+    setVoiceEnabled(!voiceEnabled);
+  };
+
   return (
-    <div className="voice-toggle">
-      <label className="switch">
+    <div className="voice-toggle-wrapper">
+      <label className="toggle-switch">
         <input
           type="checkbox"
           checked={voiceEnabled}
-          onChange={() => setVoiceEnabled(!voiceEnabled)}
+          onChange={handleChange}
         />
-        <span className="slider round"></span>
+        <span className="slider"></span>
       </label>
-      <span className="label-text">{voiceEnabled ? "Voice On" : "Voice Off"}</span>
+      <span className="toggle-label">
+        {voiceEnabled ? "Voice Enabled" : "Voice Disabled"}
+      </span>
     </div>
   );
 }
 
+export default VoiceToggle;
