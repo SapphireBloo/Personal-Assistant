@@ -20,14 +20,8 @@ export default function App() {
   const [typedText, setTypedText] = useState("");
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
-const [userAvatar, setUserAvatar] = useState(() =>
-  localStorage.getItem("userAvatar") || "/Personal-Assistant/default-user.png"
-);
-
-const [assistantAvatar, setAssistantAvatar] = useState(() =>
-  localStorage.getItem("assistantAvatar") || "/Personal-Assistant/default-assistant.png"
-);
-
+  const [userAvatar, setUserAvatar] = useState(() => localStorage.getItem("userAvatar") || "/src/assets/default-user.png");
+  const [assistantAvatar, setAssistantAvatar] = useState(() => localStorage.getItem("assistantAvatar") || "/default-assistant.png");
   const [showProfileModal, setShowProfileModal] = useState(false);
   
   // <-- ADDED: user state to track auth
