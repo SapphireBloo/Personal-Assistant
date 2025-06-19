@@ -1,14 +1,22 @@
 import React from "react";
+import toast from "react-hot-toast";
 import "./VoiceToggle.css";
 
 function VoiceToggle({ voiceEnabled, setVoiceEnabled, user }) {
   const handleChange = () => {
-    if (!user && !voiceEnabled) {
-      alert("Please sign up or sign in to enable voice.");
-      return;
-    }
-    setVoiceEnabled(!voiceEnabled);
-  };
+  if (!user && !voiceEnabled) {
+    toast("Please sign in to enable voice.", {
+      icon: (
+        <span style={{ animation: "flash 1s infinite", fontSize: "20px" }}>
+          ⬆️
+        </span>
+      ),
+    });
+    return;
+  }
+  setVoiceEnabled(!voiceEnabled);
+};
+
 
   return (
     <div className="voice-toggle-wrapper">

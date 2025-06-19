@@ -20,3 +20,19 @@ html, body, #root {
   from, to { opacity: 0; }
   50% { opacity: 1; }
 }
+/* Optional: Animate toast appearance */
+[data-sonner-toast] {
+  transform: translateX(-20px);
+  animation: slideInLeft 0.3s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

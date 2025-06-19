@@ -6,11 +6,12 @@ import VoiceVisualizer from "./components/VoiceVisualizer";
 import ProfileModal from "./components/ProfileModal";
 import VoiceToggle from "./components/VoiceToggle";
 import useSpeechQueue from "./hooks/useSpeechQueue";
-import { auth, saveAvatarsToFirestore, loadAvatarsFromFirestore, db } from "./firebase";
+import { auth } from "./firebase";
 import { handleUserInput } from "./utils/apiHandlers";
 import Clock from "./components/Clock";
 import TodoWidget from "./components/TodoWidget";
-
+import { Toaster } from "react-hot-toast";
+import { saveUserProfile, loadUserProfile } from "./utils/userProfileUtils";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
@@ -26,12 +27,13 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  const [userAvatar, setUserAvatar] = useState(() =>
-    localStorage.getItem("userAvatar") || "default-user.png"
-  );
-  const [assistantAvatar, setAssistantAvatar] = useState(() =>
-    localStorage.getItem("assistantAvatar") || "default-assistant.png"
-  );
+  const [userAvatar, setUserAvatar] = useState("default-user.png");
+  const [assistantAvatar, setAssistantAvatar] = useState("default-assistant.png");
+
+  const [userProfile, setUserProfile] = useState({
+    userName: "",
+    assistantName: "Assistant",
+  });
 
   const recognitionRef = useRef(null);
 
@@ -40,45 +42,57 @@ export default function App() {
     ELEVENLABS_VOICE_ID
   );
 
-  // Firebase auth state
+  // Helper to clean undefined values before saving
+  const cleanProfileData = (data) =>
+    Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+
+  // 🔐 Load profile on login
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (u) => {
       setUser(u);
       if (u) {
-        try {
-          const data = await loadAvatarsFromFirestore();
-          if (data) {
-            if (data.userAvatar) setUserAvatar(data.userAvatar);
-            if (data.assistantAvatar) setAssistantAvatar(data.assistantAvatar);
-          }
-        } catch (err) {
-          console.error("Failed to load avatars from Firestore:", err);
+        const profile = await loadUserProfile(u.uid);
+        if (profile) {
+          if (profile.userAvatar) setUserAvatar(profile.userAvatar);
+          if (profile.assistantAvatar) setAssistantAvatar(profile.assistantAvatar);
+          setUserProfile({
+            userName: profile.userName || "",
+            assistantName: profile.assistantName || "Assistant",
+          });
         }
       }
     });
     return unsubscribe;
   }, []);
 
-  // Save avatar updates
+  // 🧠 Save profile updates
   useEffect(() => {
     if (auth.currentUser) {
-      saveAvatarsToFirestore(userAvatar, assistantAvatar).catch((err) =>
-        console.error("Failed to save avatars to Firestore:", err)
-      );
+      const cleanData = cleanProfileData({
+        userAvatar,
+        assistantAvatar,
+        ...userProfile,
+      });
+      saveUserProfile(auth.currentUser.uid, cleanData);
     }
-  }, [userAvatar, assistantAvatar]);
+  }, [userAvatar, assistantAvatar, userProfile]);
 
   const handleAvatarChange = (type, url) => {
     if (type === "user") {
       setUserAvatar(url);
-      localStorage.setItem("userAvatar", url);
     } else {
       setAssistantAvatar(url);
-      localStorage.setItem("assistantAvatar", url);
     }
   };
 
-  // Speech recognition setup
+  const handleNameChange = (type, name) => {
+    setUserProfile((prev) => ({
+      ...prev,
+      [type === "user" ? "userName" : "assistantName"]: name,
+    }));
+  };
+
+  // 🎤 Speech recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -124,63 +138,85 @@ export default function App() {
   };
 
   const processUserInput = async (text) => {
- const result = await handleUserInput({
-  userText: text,
-  chatHistory,
-  voiceEnabled,
-  speakFn: speakIncrementally,
-  setAssistantText,
-  setChatHistory,
-  CEREBRAS_API_KEY,
-  user,
-});
+    const result = await handleUserInput({
+      userText: text,
+      chatHistory,
+      voiceEnabled,
+      speakFn: speakIncrementally,
+      setAssistantText,
+      setChatHistory,
+      CEREBRAS_API_KEY,
+      userProfile,
+    });
 
-
-  if (result?.error) {
-    setAssistantText((prev) => prev || "Sorry, I had trouble understanding that.");
-  }
-};
-
+    if (result?.error) {
+      setAssistantText((prev) => prev || "Sorry, I had trouble understanding that.");
+    }
+  };
 
   return (
     <>
-      <VantaBackground style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: 0,
-        pointerEvents: "none"
-      }} />
+      <Toaster
+        position="top-left"
+        toastOptions={{
+          style: {
+            background: "#1a1a1a",
+            color: "#fff",
+            border: "1px solid #333",
+            fontFamily: "Arial, sans-serif",
+          },
+          iconTheme: {
+            primary: "#0f52ba",
+            secondary: "#1a1a1a",
+          },
+          duration: 4000,
+        }}
+        containerStyle={{
+          marginTop: "70px",
+          marginLeft: "20px",
+        }}
+      />
+
+      <VantaBackground
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
+
       <SidebarMenu
         userAvatar={userAvatar}
         assistantAvatar={assistantAvatar}
         onAvatarChange={handleAvatarChange}
+        userName={userProfile.userName}
+        assistantName={userProfile.assistantName}
+        onNameChange={handleNameChange}
       />
-     <WeatherWidget />
-<TodoWidget />
-      <div style={{
-        position: "relative",
-        padding: 20,
-        paddingBottom: 100,
-        fontFamily: "Arial, sans-serif",
-        color: "#e0e0e0",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        zIndex: 1,
-      }}>
+
+      <WeatherWidget />
+      <TodoWidget />
+
+      <div
+        style={{
+          position: "relative",
+          padding: 20,
+          paddingBottom: 100,
+          fontFamily: "Arial, sans-serif",
+          color: "#e0e0e0",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          zIndex: 1,
+        }}
+      >
         <Clock />
-        
-
         <VoiceVisualizer audioRef={audioRef} isSpeaking={isSpeaking} />
-
-        <VoiceToggle
-          voiceEnabled={voiceEnabled}
-          setVoiceEnabled={setVoiceEnabled}
-          user={user}
-        />
+        <VoiceToggle voiceEnabled={voiceEnabled} setVoiceEnabled={setVoiceEnabled} user={user} />
 
         <div style={{ display: "flex", gap: 8, maxWidth: 600, width: "100%" }}>
           <input
@@ -189,9 +225,7 @@ export default function App() {
             value={typedText}
             onChange={(e) => setTypedText(e.target.value)}
             disabled={listening || isSpeaking}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") sendTypedText();
-            }}
+            onKeyDown={(e) => e.key === "Enter" && sendTypedText()}
             style={{
               flexGrow: 1,
               padding: 10,
@@ -238,75 +272,77 @@ export default function App() {
 
         <div style={{ marginTop: 40, maxWidth: 600, width: "100%" }}>
           <h3 style={{ textAlign: "center", marginBottom: 10 }}>Conversation History</h3>
-          <div style={{
-            backgroundColor: "#1a1a1a",
-            padding: "10px 16px",
-            borderRadius: 8,
-            maxHeight: "300px",
-            overflowY: "auto",
-            border: "1px solid #333",
-          }}>
-           {chatHistory.map((msg, index) => {
-  const formattedTime = msg.timestamp
-    ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "";
-
-    
-
-  return (
-    <div
-      key={index}
-      style={{
-        display: "flex",
-        flexDirection: msg.role === "user" ? "row-reverse" : "row",
-        alignItems: "flex-start",
-        gap: "8px",
-        marginBottom: "10px",
-      }}
-    >
-      <img
-        src={msg.role === "user" ? userAvatar : assistantAvatar}
-        alt={`${msg.role} avatar`}
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "2px solid #555",
-          flexShrink: 0,
-        }}
-      />
-      <div
-        style={{
-          backgroundColor: msg.role === "user" ? "#0f52ba" : "#333",
-          color: "#fff",
-          padding: "10px 16px",
-          borderRadius: "16px",
-          maxWidth: "75%",
-          wordWrap: "break-word",
-          fontSize: "16px",
-          position: "relative",
-        }}
-      >
-        <div>{msg.content}</div>
-        {formattedTime && (
           <div
             style={{
-              fontSize: "10px",
-              color: "#ccc",
-              marginTop: "4px",
-              textAlign: "right",
-              userSelect: "none",
+              backgroundColor: "#1a1a1a",
+              padding: "10px 16px",
+              borderRadius: 8,
+              maxHeight: "300px",
+              overflowY: "auto",
+              border: "1px solid #333",
             }}
           >
-            {formattedTime}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-})}
+            {chatHistory.map((msg, index) => {
+              const formattedTime = msg.timestamp
+                ? new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "";
 
+              return (
+                <div
+                  key={index}
+                  style={{
+                    display: "flex",
+                    flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <img
+                    src={msg.role === "user" ? userAvatar : assistantAvatar}
+                    alt={`${msg.role} avatar`}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "2px solid #555",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      backgroundColor: msg.role === "user" ? "#0f52ba" : "#333",
+                      color: "#fff",
+                      padding: "10px 16px",
+                      borderRadius: "16px",
+                      maxWidth: "75%",
+                      wordWrap: "break-word",
+                      fontSize: "16px",
+                      position: "relative",
+                    }}
+                  >
+                    <div>{msg.content}</div>
+                    {formattedTime && (
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "#ccc",
+                          marginTop: "4px",
+                          textAlign: "right",
+                          userSelect: "none",
+                        }}
+                      >
+                        {formattedTime}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -326,12 +362,16 @@ export default function App() {
         </button>
 
         <audio ref={audioRef} />
+
         {showProfileModal && (
           <ProfileModal
             userAvatar={userAvatar}
             assistantAvatar={assistantAvatar}
             onAvatarChange={handleAvatarChange}
             onClose={() => setShowProfileModal(false)}
+            userName={userProfile.userName}
+            assistantName={userProfile.assistantName}
+            onNameChange={handleNameChange}
           />
         )}
       </div>

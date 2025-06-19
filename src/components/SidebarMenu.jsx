@@ -2,16 +2,21 @@ import React, { useState, useEffect } from "react";
 import "./SidebarMenu.css";
 import AuthModal from "./AuthModal";
 import ChatHistoryModal from "./ChatHistoryModal";
-import ProfileModal from "./ProfileModal"; // ✅ ADD THIS LINE
+import ProfileModal from "./ProfileModal";
 import { auth } from "../firebase";
 
-const buttons = ["Chat History", "Help"];
-
-export default function SidebarMenu({ userAvatar, assistantAvatar, onAvatarChange }) {
+export default function SidebarMenu({
+  userAvatar,
+  assistantAvatar,
+  userName,
+  assistantName,
+  onAvatarChange,
+  onNameChange,
+}) {
   const [open, setOpen] = useState(false);
   const [authMode, setAuthMode] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false); // ✅ NEW STATE
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -69,45 +74,43 @@ export default function SidebarMenu({ userAvatar, assistantAvatar, onAvatarChang
             )}
 
             {user && (
-  <>
-    <button
-      className="sidebar-button"
-      onClick={() => handleButtonClick("Sign out")}
-    >
-      Sign out
-    </button>
+              <>
+                <button
+                  className="sidebar-button"
+                  onClick={() => handleButtonClick("Sign out")}
+                >
+                  Sign out
+                </button>
 
-    <button
-      className="sidebar-button"
-      onClick={() => setShowProfileModal(true)}
-    >
-      Profile
-    </button>
+                <button
+                  className="sidebar-button"
+                  onClick={() => setShowProfileModal(true)}
+                >
+                  Profile
+                </button>
 
-    {/* ADD CHAT HISTORY BUTTON HERE */}
-    <button
-      className="sidebar-button"
-      onClick={() => setShowHistory(true)}
-    >
-      Chat History
-    </button>
-  </>
-)}
-
-
+                <button
+                  className="sidebar-button"
+                  onClick={() => setShowHistory(true)}
+                >
+                  Chat History
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
 
       {authMode && <AuthModal mode={authMode} onClose={() => setAuthMode(null)} />}
       {showHistory && <ChatHistoryModal onClose={() => setShowHistory(false)} />}
-      
-      {/* ✅ PROFILE MODAL */}
       {showProfileModal && (
         <ProfileModal
           userAvatar={userAvatar}
           assistantAvatar={assistantAvatar}
+          userName={userName}
+          assistantName={assistantName}
           onAvatarChange={onAvatarChange}
+          onNameChange={onNameChange}
           onClose={() => setShowProfileModal(false)}
         />
       )}

@@ -4,8 +4,12 @@ import {
   addToFirebaseTodo,
   fetchFirebaseTodos,
   deleteFirebaseTodoByText,
-} from "./firebaseTodo"; // Make sure this path matches your actual file
+} from "./firebaseTodo";
+import { loadMemory, saveMemory } from "./memoryUtils";
 
+/**
+ * Main handler for user input — supports to-do commands, chat streaming, memory, and names.
+ */
 export async function handleUserInput({
   userText,
   chatHistory,
@@ -14,56 +18,78 @@ export async function handleUserInput({
   setAssistantText,
   setChatHistory,
   CEREBRAS_API_KEY,
+  userProfile, // { userName, assistantName }
 }) {
   try {
     const lower = userText.toLowerCase();
     const currentUser = auth.currentUser;
 
-  if (currentUser && /\bto[- ]?do\b/i.test(lower)) {
-  if (lower.startsWith("add")) {
-    const cleaned = userText
-      .toLowerCase()
-      .match(/add\s(.+?)(\s(to|into)?\s(my)?\s?to[- ]?do(\slist)?)?$/i);
-
-    const task =
-      cleaned?.[1]?.trim() || userText.replace(/add\s?/i, "").trim();
-
-    await addToFirebaseTodo(currentUser.uid, task);
-    const reply = `I've added "${task}" to your to-do list.`;
-    setAssistantText(reply);
-    if (voiceEnabled) await speakFn(reply);
-    return;
-  }
-
+    // 📌 TO-DO COMMANDS
+    if (currentUser && /\bto[- ]?do\b/i.test(lower)) {
+      if (lower.startsWith("add")) {
+        const cleaned = userText
+          .toLowerCase()
+          .match(/add\s(.+?)(\s(to|into)?\s(my)?\s?to[- ]?do(\slist)?)?$/i);
+        const task =
+          cleaned?.[1]?.trim() || userText.replace(/add\s?/i, "").trim();
+        await addToFirebaseTodo(currentUser.uid, task);
+        const reply = `I've added "${task}" to your to-do list.`;
+        setAssistantText(reply);
+        if (voiceEnabled) await speakFn(reply);
+        return;
+      }
 
       if (lower.includes("list")) {
         const todos = await fetchFirebaseTodos(currentUser.uid);
         const reply =
           todos.length > 0
-            ? `Here's your to-do list: ${todos.map((t) => t.text).join(", ")}.`
-            : "Your to-do list is empty.";
+            ? `Here are your tasks: ${todos.map((t) => t.text).join(", ")}.`
+            : "You have no tasks.";
         setAssistantText(reply);
         if (voiceEnabled) await speakFn(reply);
         return;
       }
 
       if (lower.startsWith("delete")) {
-        const task = userText.replace(/delete (to-?do)?/i, "").trim();
+        const task = userText.replace(/delete (to[- ]?do)?/i, "").trim();
         const success = await deleteFirebaseTodoByText(currentUser.uid, task);
         const reply = success
-          ? `I deleted "${task}" from your list.`
-          : `I couldn't find "${task}" in your list.`;
+          ? `Deleted "${task}".`
+          : `Couldn't find "${task}".`;
         setAssistantText(reply);
         if (voiceEnabled) await speakFn(reply);
         return;
       }
-
-      // You could expand this with "mark as done", etc.
     }
 
-    // === Otherwise, stream from Cerebras ===
+    // 🤖 OTHERWISE — CEREBRAS STREAMING WITH MEMORY + NAME CONTEXT
     setAssistantText("");
     let fullAssistantText = "";
+
+    let memoryContext = [];
+    if (currentUser) {
+      const memory = await loadMemory(currentUser.uid);
+      memoryContext = memory.facts.map((fact) => ({
+        role: "system",
+        content: fact,
+      }));
+    }
+
+    // Insert improved system prompt with explicit name usage instructions
+    if (userProfile?.userName || userProfile?.assistantName) {
+      const systemPrompt = `
+You are a helpful AI assistant named "${userProfile.assistantName || "Assistant"}".
+You are chatting with a user named "${userProfile.userName || "User"}".
+Always address the user by their name during the conversation when appropriate.
+Respond in a friendly and conversational tone.
+      `.trim();
+
+      memoryContext.unshift({
+        role: "system",
+        content: systemPrompt,
+      });
+    }
+
     const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -72,7 +98,11 @@ export async function handleUserInput({
       },
       body: JSON.stringify({
         model: "llama-4-scout-17b-16e-instruct",
-        messages: [...chatHistory, { role: "user", content: userText }],
+        messages: [
+          ...memoryContext,
+          ...chatHistory,
+          { role: "user", content: userText },
+        ],
         stream: true,
       }),
     });
@@ -80,7 +110,7 @@ export async function handleUserInput({
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
-    let phraseBuffer = "";
+    let phrase = "";
 
     while (true) {
       const { value, done } = await reader.read();
@@ -90,35 +120,31 @@ export async function handleUserInput({
       const lines = buffer.split("\n").filter(Boolean);
 
       for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const jsonStr = line.replace("data: ", "");
-          try {
-            const json = JSON.parse(jsonStr);
-            const token = json.choices?.[0]?.delta?.content;
-            if (token) {
-              setAssistantText((prev) => prev + token);
-              fullAssistantText += token;
-              phraseBuffer += token;
+        if (!line.startsWith("data: ")) continue;
 
-              if (/[.!?]\s$/.test(phraseBuffer) || phraseBuffer.length > 80) {
-                if (voiceEnabled) {
-                  await speakFn(phraseBuffer.trim());
-                }
-                phraseBuffer = "";
-              }
+        const jsonStr = line.replace("data: ", "");
+        try {
+          const json = JSON.parse(jsonStr);
+          const token = json.choices?.[0]?.delta?.content;
+          if (token) {
+            setAssistantText((prev) => prev + token);
+            fullAssistantText += token;
+            phrase += token;
+
+            if (/[.!?]\s$/.test(phrase) || phrase.length > 80) {
+              if (voiceEnabled) await speakFn(phrase.trim());
+              phrase = "";
             }
-          } catch (err) {
-            console.warn("Skipping invalid JSON line:", jsonStr);
           }
+        } catch (err) {
+          console.warn("Skipping invalid JSON:", jsonStr);
         }
       }
 
       buffer = "";
     }
 
-    if (phraseBuffer && voiceEnabled) {
-      await speakFn(phraseBuffer.trim());
-    }
+    if (phrase && voiceEnabled) await speakFn(phrase.trim());
 
     const now = Date.now();
     setChatHistory((prev) => [
@@ -134,9 +160,15 @@ export async function handleUserInput({
         assistantMessage: fullAssistantText.trim(),
         timestamp: new Date(),
       });
+
+      // 🧠 Save memory (last 20 facts)
+      const newFact = `${userProfile?.userName || "User"} said: "${userText}". ${userProfile?.assistantName || "Assistant"} replied: "${fullAssistantText.trim()}"`;
+      const memory = await loadMemory(currentUser.uid);
+      const updated = [...memory.facts.slice(-19), newFact];
+      await saveMemory(currentUser.uid, { facts: updated });
     }
   } catch (error) {
-    console.error("Streaming error:", error);
-    setAssistantText((prev) => (prev.trim() ? prev : "Sorry, I had trouble understanding that."));
+    console.error("❌ handleUserInput error:", error);
+    setAssistantText("Sorry, I had trouble understanding that.");
   }
 }
