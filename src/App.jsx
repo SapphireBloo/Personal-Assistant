@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import VantaBackground from "./VantaBackground";
+import StarfieldBackground from "./components/StarfieldBackground";
 import WeatherWidget from "./components/WeatherWidget";
 import SidebarMenu from "./components/SidebarMenu";
 import VoiceVisualizer from "./components/VoiceVisualizer";
@@ -14,6 +14,7 @@ import TodoWidget from "./components/TodoWidget";
 import { Toaster } from "react-hot-toast";
 import { saveUserProfile, loadUserProfile } from "./utils/userProfileUtils";
 import "./components/WidgetPanel.css";
+import Footer from "./components/Footer";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
@@ -155,7 +156,7 @@ export default function App() {
         }}
       />
 
-      <VantaBackground
+      <StarfieldBackground
         style={{
           position: "fixed",
           top: 0,
@@ -348,11 +349,12 @@ export default function App() {
         <audio ref={audioRef} />
         <audio
   id="bg-music"
-  src="/assets/music.mp3"
+  src="/Personal-Assistant/assets/music.mp3"
+
   controls
   autoPlay
   loop
-  style={{ display: "none" }} // hide it if you don't want controls shown
+  style={{ display: "none" }}
 />
 
         {showProfileModal && (
@@ -366,6 +368,8 @@ export default function App() {
             onNameChange={handleNameChange}
           />
         )}
+        <Footer />
+
       </div>
     </>
   );
