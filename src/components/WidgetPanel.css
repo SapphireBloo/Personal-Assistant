@@ -1,0 +1,36 @@
+/* WidgetPanel.css */
+.widget-panel {
+  position: fixed;
+  top: 100px; /* 👈 Increase this value to move it lower */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transform: translateX(110%);
+  transition: transform 0.3s ease-in-out;
+  z-index: 100;
+}
+
+
+.widget-panel.hidden {
+  transform: translateX(110%);
+}
+
+.widget-panel.visible {
+  transform: translateX(0);
+}
+
+.widget-toggle-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 101;
+  background-color: #0f52ba;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}

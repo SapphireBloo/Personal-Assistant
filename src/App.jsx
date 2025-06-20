@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import VantaBackground from "./VantaBackground";
 import WeatherWidget from "./components/WeatherWidget";
 import SidebarMenu from "./components/SidebarMenu";
@@ -6,12 +6,14 @@ import VoiceVisualizer from "./components/VoiceVisualizer";
 import ProfileModal from "./components/ProfileModal";
 import VoiceToggle from "./components/VoiceToggle";
 import useSpeechQueue from "./hooks/useSpeechQueue";
+import useSpeechRecognition from "./hooks/useSpeechRecognition";
 import { auth } from "./firebase";
 import { handleUserInput } from "./utils/apiHandlers";
 import Clock from "./components/Clock";
 import TodoWidget from "./components/TodoWidget";
 import { Toaster } from "react-hot-toast";
 import { saveUserProfile, loadUserProfile } from "./utils/userProfileUtils";
+import "./components/WidgetPanel.css";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
@@ -26,7 +28,7 @@ export default function App() {
   const [chatHistory, setChatHistory] = useState([]);
   const [user, setUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
-
+  const [widgetsVisible, setWidgetsVisible] = useState(true);
   const [userAvatar, setUserAvatar] = useState("default-user.png");
   const [assistantAvatar, setAssistantAvatar] = useState("default-assistant.png");
 
@@ -35,14 +37,15 @@ export default function App() {
     assistantName: "Assistant",
   });
 
-  const recognitionRef = useRef(null);
+  const toggleWidgets = () => {
+    setWidgetsVisible((prev) => !prev);
+  };
 
   const { speakIncrementally, isSpeaking, audioRef } = useSpeechQueue(
     ELEVENLABS_API_KEY,
     ELEVENLABS_VOICE_ID
   );
 
-  // Helper to clean undefined values before saving
   const cleanProfileData = (data) =>
     Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
 
@@ -92,51 +95,6 @@ export default function App() {
     }));
   };
 
-  // 🎤 Speech recognition
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech Recognition API not supported.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setUserText(transcript);
-      setListening(false);
-      processUserInput(transcript);
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      setListening(false);
-    };
-
-    recognition.onend = () => setListening(false);
-    recognitionRef.current = recognition;
-  }, []);
-
-  const startListening = () => {
-    if (!recognitionRef.current || listening || isSpeaking) return;
-    setUserText("");
-    setAssistantText("");
-    setListening(true);
-    recognitionRef.current.start();
-  };
-
-  const sendTypedText = () => {
-    if (!typedText.trim()) return;
-    setUserText(typedText);
-    setAssistantText("");
-    processUserInput(typedText);
-    setTypedText("");
-  };
-
   const processUserInput = async (text) => {
     const result = await handleUserInput({
       userText: text,
@@ -152,6 +110,26 @@ export default function App() {
     if (result?.error) {
       setAssistantText((prev) => prev || "Sorry, I had trouble understanding that.");
     }
+  };
+
+  const { startListening } = useSpeechRecognition({
+    enabled: true,
+    onResult: (transcript) => {
+      setUserText(transcript);
+      setListening(false);
+      processUserInput(transcript);
+    },
+    onError: () => setListening(false),
+    onStart: () => setListening(true),
+    onEnd: () => setListening(false),
+  });
+
+  const sendTypedText = () => {
+    if (!typedText.trim()) return;
+    setUserText(typedText);
+    setAssistantText("");
+    processUserInput(typedText);
+    setTypedText("");
   };
 
   return (
@@ -198,8 +176,14 @@ export default function App() {
         onNameChange={handleNameChange}
       />
 
-      <WeatherWidget />
-      <TodoWidget />
+      <div className={`widget-panel ${widgetsVisible ? "visible" : "hidden"}`}>
+        <WeatherWidget />
+        <TodoWidget />
+      </div>
+
+      <button className="widget-toggle-btn" onClick={toggleWidgets}>
+        {widgetsVisible ? "Hide Tools" : "Show Tools"}
+      </button>
 
       <div
         style={{
@@ -362,6 +346,14 @@ export default function App() {
         </button>
 
         <audio ref={audioRef} />
+        <audio
+  id="bg-music"
+  src="/assets/music.mp3"
+  controls
+  autoPlay
+  loop
+  style={{ display: "none" }} // hide it if you don't want controls shown
+/>
 
         {showProfileModal && (
           <ProfileModal

@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
+
 export default function TodoWidget() {
   const [todos, setTodos] = useState([]);
 
@@ -84,19 +85,16 @@ export default function TodoWidget() {
 }
 
 const widgetStyle = {
-  position: "fixed",
-  top: 300,
-  right: 0,
   padding: 16,
   backgroundColor: "rgba(0,0,0,0.6)",
   color: "#e0e0e0",
   borderRadius: 12,
-  zIndex: 10,
   maxWidth: 260,
   fontSize: 14,
   fontFamily: "Arial, sans-serif",
-  boxShadow: "0 0 15px rgba(15,82,186,0.4)",
+  boxShadow: "0 0 15px rgba(15,82,186,0.7)",
 };
+
 
 const listStyle = {
   listStyle: "none",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 
+
 function WeatherWidget() {
   const [weatherData, setWeatherData] = useState(null);
   const [locationName, setLocationName] = useState("Unknown location");
@@ -150,19 +151,16 @@ function WeatherWidget() {
 }
 
 const widgetStyle = {
-  position: "fixed",
-  top: 20,
-  right: 0,
   padding: 16,
   backgroundColor: "rgba(0,0,0,0.6)",
   color: "#e0e0e0",
   borderRadius: 12,
-  zIndex: 10,
   maxWidth: 260,
   fontSize: 14,
   fontFamily: "Arial, sans-serif",
   boxShadow: "0 0 15px rgba(15,82,186,0.7)",
 };
+
 
 const selectStyle = {
   backgroundColor: "rgba(0,0,0,0.6)",
