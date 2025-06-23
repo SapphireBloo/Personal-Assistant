@@ -20,12 +20,12 @@ export default function Footer() {
     }
 
     const interval = setInterval(() => {
-      setShowTip(false); // trigger fade out
+      setShowTip(false);
       setTimeout(() => {
         setCurrentTip((prev) => (prev + 1) % tips.length);
-        setShowTip(true); // trigger new tip fade in + scroll
+        setShowTip(true);
       }, 500);
-    }, 10000); // new tip every 10 seconds
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -63,18 +63,22 @@ export default function Footer() {
 
       {showTip && (
         <div
-          key={currentTip} // forces animation restart
+          key={currentTip}
           style={{
             position: "fixed",
             bottom: 50,
             left: "50%",
             transform: "translateX(-50%)",
-            whiteSpace: "nowrap",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
             color: "#fff",
-            padding: "6px 16px",
+            padding: "8px 16px",
             borderRadius: "16px",
             fontSize: "14px",
+            maxWidth: "90vw",
+            width: "fit-content",
+            textAlign: "center",
+            whiteSpace: "normal",
+            wordWrap: "break-word",
             zIndex: 99,
             animation: "tip-scroll 8s ease-in-out forwards",
           }}
@@ -105,6 +109,13 @@ export default function Footer() {
             100% {
               transform: translateX(-50%) translateY(60px);
               opacity: 0;
+            }
+
+            @media (max-width: 480px) {
+              div[style*="tip-scroll"] {
+                font-size: 12px !important;
+                padding: 6px 12px !important;
+              }
             }
           }
         `}
