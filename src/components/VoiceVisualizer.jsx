@@ -1,4 +1,3 @@
-// components/VoiceVisualizer.jsx
 import React, { useRef, useEffect } from "react";
 
 function VoiceVisualizer({ audioRef, isSpeaking }) {
@@ -18,17 +17,18 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
 
     const centerX = width / 2;
     const centerY = height / 2;
-    const baseRadius = 80;
+    const baseRadius = 60;
+    const numPoints = 64;
 
     // Setup audio context and analyser
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 64;
+      analyserRef.current.fftSize = 128;
       dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
     }
 
-    // Connect assistant audio if not already
+    // Connect assistant audio
     if (audioRef.current && !sourceRef.current.assistant) {
       try {
         sourceRef.current.assistant = audioContextRef.current.createMediaElementSource(audioRef.current);
@@ -39,7 +39,7 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
       }
     }
 
-    // Connect background music if available
+    // Connect background music
     const bgMusic = document.getElementById("bg-music");
     if (bgMusic && !sourceRef.current.music) {
       try {
@@ -47,7 +47,7 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
         sourceRef.current.music.connect(analyserRef.current);
         analyserRef.current.connect(audioContextRef.current.destination);
       } catch (err) {
-        console.warn("Music source already connected or failed:", err);
+        console.warn("Music audio source already connected or failed:", err);
       }
     }
 
@@ -57,29 +57,38 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
 
       analyserRef.current.getByteFrequencyData(dataArrayRef.current);
       const avg = dataArrayRef.current.reduce((a, b) => a + b, 0) / dataArrayRef.current.length;
-      const radius = baseRadius + avg / 2;
 
-      const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.6, centerX, centerY, radius);
-      gradient.addColorStop(0, "rgba(15,82,186, 0.8)");
-      gradient.addColorStop(1, "rgba(15,82,186, 0)");
+      wavePhase.current += 0.05;
+      const dynamicRadius = baseRadius + avg * 0.2;
 
-      // Outer pulse ring
+      // Create wavy orb shape
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 12;
-      ctx.shadowColor = "rgba(15,82,186, 0.7)";
-      ctx.shadowBlur = 20;
-      ctx.stroke();
+      for (let i = 0; i <= numPoints; i++) {
+        const angle = (i / numPoints) * Math.PI * 2;
+        const offset = Math.sin(angle * 4 + wavePhase.current) * (avg / 6);
+        const radius = dynamicRadius + offset;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
 
-      // Inner ring
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, baseRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = "#0f52ba";
-      ctx.lineWidth = 6;
-      ctx.shadowColor = "#0f52ba";
-      ctx.shadowBlur = 10;
-      ctx.stroke();
+      const gradient = ctx.createRadialGradient(
+        centerX,
+        centerY,
+        dynamicRadius * 0.4,
+        centerX,
+        centerY,
+        dynamicRadius
+      );
+      gradient.addColorStop(0, "rgba(15,82,186,0.9)");
+      gradient.addColorStop(1, "rgba(15,82,186,0.2)");
+
+      ctx.fillStyle = gradient;
+      ctx.shadowColor = "rgba(15,82,186, 0.9)";
+      ctx.shadowBlur = 30;
+      ctx.fill();
     };
 
     draw();

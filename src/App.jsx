@@ -15,6 +15,7 @@ import { Toaster } from "react-hot-toast";
 import { saveUserProfile, loadUserProfile } from "./utils/userProfileUtils";
 import "./components/WidgetPanel.css";
 import Footer from "./components/Footer";
+import CurrentDate from "./components/CurrentDate";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
@@ -157,15 +158,7 @@ export default function App() {
       />
 
       <StarfieldBackground
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
+        
       />
 
       <SidebarMenu
@@ -199,7 +192,9 @@ export default function App() {
           zIndex: 1,
         }}
       >
+        
         <Clock />
+        <CurrentDate />
         <VoiceVisualizer audioRef={audioRef} isSpeaking={isSpeaking} />
         <VoiceToggle voiceEnabled={voiceEnabled} setVoiceEnabled={setVoiceEnabled} user={user} />
 
