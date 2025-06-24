@@ -342,15 +342,16 @@ export default function App() {
         </button>
 
         <audio ref={audioRef} />
-        <audio
+    <audio
   id="bg-music"
   src={`${import.meta.env.BASE_URL}music.mp3`}
-
   controls
   autoPlay
+  
   loop
   style={{ display: "none" }}
 />
+
 
         {showProfileModal && (
           <ProfileModal
