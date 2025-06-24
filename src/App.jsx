@@ -344,7 +344,7 @@ export default function App() {
         <audio ref={audioRef} />
     <audio
   id="bg-music"
-  src={`${import.meta.env.BASE_URL}music.mp3`}
+  src={`${import.meta.env.BASE_URL}bg-music.mp3`}
   controls
   autoPlay
   
