@@ -6,7 +6,7 @@ export default function WelcomeModal({ onConfirm }) {
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <h2>Welcome to Your Virtual Assistant</h2>
-        <p>This assistant responds to your voice and text input, plays background music, and shows live tools like weather and to-do lists.</p>
+        <p>This assistant responds to your voice and text input, plays background music (and sometimes ads), and shows live tools like weather and to-do lists.</p>
         <p>Click the button below to start the experience. </p>
         <p>Signing in Offers a unique memory experience.(You can use a made up email, this is just a fun project.)</p>
         <button style={styles.button} onClick={onConfirm}>
