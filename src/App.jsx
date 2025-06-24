@@ -206,7 +206,7 @@ const handleWelcomeConfirm = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          zIndex: 1,
+          zIndex: 10,
         }}
       >
         <Clock />
