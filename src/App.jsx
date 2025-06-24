@@ -16,6 +16,8 @@ import { saveUserProfile, loadUserProfile } from "./utils/userProfileUtils";
 import "./components/WidgetPanel.css";
 import Footer from "./components/Footer";
 import CurrentDate from "./components/CurrentDate";
+import WelcomeModal from "./components/WelcomeModal";
+import YouTube from "react-youtube";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
@@ -37,6 +39,7 @@ export default function App() {
     userName: "",
     assistantName: "Assistant",
   });
+const [showWelcomeModal, setShowWelcomeModal] = useState(true);
 
   const chatEndRef = useRef(null); // 👈 New ref for auto-scroll
 
@@ -87,19 +90,6 @@ export default function App() {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatHistory]);
-
-  useEffect(() => {
-  const audio = document.getElementById("bg-music");
-  const handler = () => {
-    audio?.play().catch((e) => {
-      console.warn("Autoplay blocked:", e.message);
-    });
-    window.removeEventListener("click", handler);
-  };
-  window.addEventListener("click", handler);
-  return () => window.removeEventListener("click", handler);
-}, []);
-
 
   const handleAvatarChange = (type, url) => {
     if (type === "user") {
@@ -152,9 +142,20 @@ export default function App() {
     processUserInput(typedText);
     setTypedText("");
   };
+const handleWelcomeConfirm = () => {
+  // Unmute YouTube music player if available
+  if (window.youtubePlayer) {
+    window.youtubePlayer.unMute();
+  }
+
+  setShowWelcomeModal(false);
+};
+
 
   return (
     <>
+    {showWelcomeModal && <WelcomeModal onConfirm={handleWelcomeConfirm} />}
+
       <Toaster
         position="top-left"
         toastOptions={{
@@ -358,15 +359,26 @@ export default function App() {
         </button>
 
         <audio ref={audioRef} />
-        <audio
-          id="bg-music"
-          src={`${import.meta.env.BASE_URL}bg-music.mp3`}
-          controls
-          
-          loop
-          style={{ opacity: 0, width: 0, height: 0 }}
+ <YouTube
+  videoId="am1VJP0RnmQ"
+  opts={{
+    height: "0",
+    width: "0",
+    playerVars: {
+      autoplay: 1,
+      loop: 1,
+      playlist: "am1VJP0RnmQ", // Required for loop to work
+    },
+  }}
+  onReady={(event) => {
+    window.youtubePlayer = event.target;
+    event.target.mute(); // Start muted
+  }}
+/>
 
-        />
+
+
+
     
 
         {showProfileModal && (

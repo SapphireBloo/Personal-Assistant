@@ -30,14 +30,19 @@ export default function Footer() {
     return () => clearInterval(interval);
   }, []);
 
-  const toggleMute = () => {
-    const audio = document.getElementById("bg-music");
-    if (audio) {
-      const newMuteState = !audio.muted;
-      audio.muted = newMuteState;
-      setMusicMuted(newMuteState);
+ const toggleMute = () => {
+  const player = window.youtubePlayer;
+  if (player) {
+    const newMuteState = !musicMuted;
+    if (newMuteState) {
+      player.mute();
+    } else {
+      player.unMute();
     }
-  };
+    setMusicMuted(newMuteState);
+  }
+};
+
 
   return (
     <>

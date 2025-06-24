@@ -6,7 +6,7 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const dataArrayRef = useRef(null);
-  const sourceRef = useRef({ assistant: null, music: null });
+  const sourceRef = useRef(null);
   const wavePhase = useRef(0);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
     const baseRadius = 60;
     const numPoints = 64;
 
-    // Setup audio context and analyser
+    // Setup AudioContext and analyser
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -29,25 +29,13 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
     }
 
     // Connect assistant audio
-    if (audioRef.current && !sourceRef.current.assistant) {
+    if (audioRef.current && !sourceRef.current) {
       try {
-        sourceRef.current.assistant = audioContextRef.current.createMediaElementSource(audioRef.current);
-        sourceRef.current.assistant.connect(analyserRef.current);
+        sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        sourceRef.current.connect(analyserRef.current);
         analyserRef.current.connect(audioContextRef.current.destination);
       } catch (err) {
         console.warn("Assistant audio source already connected or failed:", err);
-      }
-    }
-
-    // Connect background music
-    const bgMusic = document.getElementById("bg-music");
-    if (bgMusic && !sourceRef.current.music) {
-      try {
-        sourceRef.current.music = audioContextRef.current.createMediaElementSource(bgMusic);
-        sourceRef.current.music.connect(analyserRef.current);
-        analyserRef.current.connect(audioContextRef.current.destination);
-      } catch (err) {
-        console.warn("Music audio source already connected or failed:", err);
       }
     }
 
@@ -56,12 +44,18 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
       ctx.clearRect(0, 0, width, height);
 
       analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-      const avg = dataArrayRef.current.reduce((a, b) => a + b, 0) / dataArrayRef.current.length;
+      let avg = dataArrayRef.current.reduce((a, b) => a + b, 0) / dataArrayRef.current.length;
+
+      // Simulate gentle breathing when idle
+      if (avg < 2) {
+        const pulse = Math.sin(Date.now() / 600) * 10 + 12;
+        avg = pulse;
+      }
 
       wavePhase.current += 0.05;
       const dynamicRadius = baseRadius + avg * 0.2;
 
-      // Create wavy orb shape
+      // Draw breathing orb
       ctx.beginPath();
       for (let i = 0; i <= numPoints; i++) {
         const angle = (i / numPoints) * Math.PI * 2;
@@ -95,9 +89,9 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
 
     return () => {
       cancelAnimationFrame(animationId.current);
-      ctx.clearRect(0, 0, width, height);
+      if (ctx) ctx.clearRect(0, 0, width, height);
     };
-  }, [isSpeaking, audioRef]);
+  }, [audioRef]);
 
   return (
     <canvas
