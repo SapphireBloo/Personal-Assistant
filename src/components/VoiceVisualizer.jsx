@@ -76,7 +76,7 @@ function VoiceVisualizer({ audioRef, isSpeaking }) {
         centerY,
         dynamicRadius
       );
-      gradient.addColorStop(0, "rgba(15, 180, 186, 0.9)");
+      gradient.addColorStop(0, "rgba(15,82,186, 0.9)");
       gradient.addColorStop(1, "rgba(15,82,186,0.2)");
 
       ctx.fillStyle = gradient;
