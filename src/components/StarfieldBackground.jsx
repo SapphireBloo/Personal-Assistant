@@ -21,7 +21,7 @@ export default function StarfieldBackground() {
           events: {
             onHover: {
               enable: true,
-              mode: "parallax",
+              mode: ["parallax", "trail"], // 🔥 add trail
             },
             resize: true,
           },
@@ -30,6 +30,32 @@ export default function StarfieldBackground() {
               enable: true,
               force: 30,
               smooth: 10,
+            },
+            trail: {
+              delay: 0.1,
+              quantity: 1,
+              particles: {
+                color: {
+                  value: ["#ffffff", "#a3c9ff", "#0f52ba", "#6ec1e4", "#7f00ff"],
+                },
+                size: {
+                  value: { min: 0.5, max: 2 },
+                },
+                move: {
+                  speed: 0.6,
+                  outModes: { default: "out" },
+                },
+                opacity: {
+                  value: 1,
+                  random: { enable: true, minimumValue: 0.3 },
+                  animation: {
+                    enable: true,
+                    speed: 2,
+                    minimumValue: 0.3,
+                    sync: false,
+                  },
+                },
+              },
             },
           },
         },

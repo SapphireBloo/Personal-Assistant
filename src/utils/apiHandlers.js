@@ -8,6 +8,52 @@ import {
 import { loadMemory, saveMemory } from "./memoryUtils";
 
 /**
+ * Checks if the user's input contains time-related keywords.
+ */
+function containsTimeKeyword(text) {
+  const keywords = [
+    "tonight",
+    "tomorrow",
+    "yesterday",
+    "next week",
+    "this weekend",
+    "today",
+    "in the morning",
+    "in the evening",
+    "at midnight",
+    "noon",
+    "later",
+    "soon",
+    "next",
+    "schedule",
+    "when does",
+    "what time",
+    "date",
+    "time",
+    "when",
+  ];
+  return keywords.some((kw) => text.toLowerCase().includes(kw));
+}
+
+/**
+ * Gets a context string with local date/time.
+ */
+function getTimeContextString() {
+  const now = new Date();
+  const timeString = now.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const dateString = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  return `The current local time is ${timeString}, and the date is ${dateString}.`;
+}
+
+/**
  * Main handler for user input — supports to-do commands, chat streaming, memory, and names.
  */
 export async function handleUserInput({
@@ -62,7 +108,7 @@ export async function handleUserInput({
       }
     }
 
-    // 🤖 OTHERWISE — CEREBRAS STREAMING WITH MEMORY + NAME CONTEXT
+    // 🤖 OTHERWISE — CEREBRAS STREAMING WITH MEMORY + TIME + NAME CONTEXT
     setAssistantText("");
     let fullAssistantText = "";
 
@@ -75,7 +121,7 @@ export async function handleUserInput({
       }));
     }
 
-    // Insert improved system prompt with explicit name usage instructions
+    // Inject name context
     if (userProfile?.userName || userProfile?.assistantName) {
       const systemPrompt = `
 You are a helpful AI assistant named "${userProfile.assistantName || "Assistant"}".
@@ -87,6 +133,14 @@ Respond in a friendly and conversational tone.
       memoryContext.unshift({
         role: "system",
         content: systemPrompt,
+      });
+    }
+
+    // ⏰ Add local date/time context if needed
+    if (containsTimeKeyword(userText)) {
+      memoryContext.unshift({
+        role: "system",
+        content: getTimeContextString(),
       });
     }
 

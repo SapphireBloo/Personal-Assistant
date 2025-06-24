@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import StarfieldBackground from "./components/StarfieldBackground";
 import WeatherWidget from "./components/WeatherWidget";
 import SidebarMenu from "./components/SidebarMenu";
@@ -33,11 +33,12 @@ export default function App() {
   const [widgetsVisible, setWidgetsVisible] = useState(true);
   const [userAvatar, setUserAvatar] = useState("default-user.png");
   const [assistantAvatar, setAssistantAvatar] = useState("default-assistant.png");
-
   const [userProfile, setUserProfile] = useState({
     userName: "",
     assistantName: "Assistant",
   });
+
+  const chatEndRef = useRef(null); // 👈 New ref for auto-scroll
 
   const toggleWidgets = () => {
     setWidgetsVisible((prev) => !prev);
@@ -51,7 +52,6 @@ export default function App() {
   const cleanProfileData = (data) =>
     Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
 
-  // 🔐 Load profile on login
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (u) => {
       setUser(u);
@@ -70,7 +70,6 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  // 🧠 Save profile updates
   useEffect(() => {
     if (auth.currentUser) {
       const cleanData = cleanProfileData({
@@ -81,6 +80,13 @@ export default function App() {
       saveUserProfile(auth.currentUser.uid, cleanData);
     }
   }, [userAvatar, assistantAvatar, userProfile]);
+
+  // 👇 Scroll to bottom on new message
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatHistory]);
 
   const handleAvatarChange = (type, url) => {
     if (type === "user") {
@@ -157,10 +163,7 @@ export default function App() {
         }}
       />
 
-      <StarfieldBackground
-        
-      />
-
+      <StarfieldBackground />
       <SidebarMenu
         userAvatar={userAvatar}
         assistantAvatar={assistantAvatar}
@@ -192,7 +195,6 @@ export default function App() {
           zIndex: 1,
         }}
       >
-        
         <Clock />
         <CurrentDate />
         <VoiceVisualizer audioRef={audioRef} isSpeaking={isSpeaking} />
@@ -323,6 +325,7 @@ export default function App() {
                 </div>
               );
             })}
+            <div ref={chatEndRef} /> {/* 👈 Auto-scroll anchor */}
           </div>
         </div>
 
@@ -342,16 +345,14 @@ export default function App() {
         </button>
 
         <audio ref={audioRef} />
-    <audio
-  id="bg-music"
-  src={`${import.meta.env.BASE_URL}bg-music.mp3`}
-  controls
-  autoPlay
-  
-  loop
-  style={{ display: "none" }}
-/>
-
+        <audio
+          id="bg-music"
+          src={`${import.meta.env.BASE_URL}bg-music.mp3`}
+          controls
+          autoPlay
+          loop
+          style={{ display: "none" }}
+        />
 
         {showProfileModal && (
           <ProfileModal
@@ -365,7 +366,6 @@ export default function App() {
           />
         )}
         <Footer />
-
       </div>
     </>
   );
