@@ -88,6 +88,19 @@ export default function App() {
     }
   }, [chatHistory]);
 
+  useEffect(() => {
+  const audio = document.getElementById("bg-music");
+  const handler = () => {
+    audio?.play().catch((e) => {
+      console.warn("Autoplay blocked:", e.message);
+    });
+    window.removeEventListener("click", handler);
+  };
+  window.addEventListener("click", handler);
+  return () => window.removeEventListener("click", handler);
+}, []);
+
+
   const handleAvatarChange = (type, url) => {
     if (type === "user") {
       setUserAvatar(url);
@@ -349,10 +362,12 @@ export default function App() {
           id="bg-music"
           src={`${import.meta.env.BASE_URL}bg-music.mp3`}
           controls
-          autoPlay
+          
           loop
-          style={{ display: "none" }}
+          style={{ opacity: 0, width: 0, height: 0 }}
+
         />
+    
 
         {showProfileModal && (
           <ProfileModal
