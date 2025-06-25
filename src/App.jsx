@@ -18,6 +18,7 @@ import Footer from "./components/Footer";
 import CurrentDate from "./components/CurrentDate";
 import WelcomeModal from "./components/WelcomeModal";
 import YouTube from "react-youtube";
+import CalendarWidget from "./components/CalendarWidget";
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
@@ -190,6 +191,7 @@ const handleWelcomeConfirm = () => {
       <div className={`widget-panel ${widgetsVisible ? "visible" : "hidden"}`}>
         <WeatherWidget />
         <TodoWidget />
+        <CalendarWidget />
       </div>
 
       <button className="widget-toggle-btn" onClick={toggleWidgets}>

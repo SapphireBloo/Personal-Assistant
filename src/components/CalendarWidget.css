@@ -1,0 +1,21 @@
+/* CalendarWidget.css */
+
+@keyframes pulseBlue {
+  0% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(15, 82, 186, 0);
+  }
+  50% {
+    background-color: rgba(15, 82, 186, 0.4);
+    box-shadow: 0 0 8px 4px rgba(15, 82, 186, 0.7);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(15, 82, 186, 0);
+  }
+}
+
+.flash-blue {
+  animation: pulseBlue 1.5s infinite;
+  border-radius: 6px;
+}

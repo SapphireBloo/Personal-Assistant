@@ -6,6 +6,11 @@ import {
   deleteFirebaseTodoByText,
 } from "./firebaseTodo";
 import { loadMemory, saveMemory } from "./memoryUtils";
+import {
+  addCalendarEvent,
+  fetchCalendarEvents,
+  deleteCalendarEventByTitle,
+} from "./firebaseCalendar";
 
 /**
  * Checks if the user's input contains time-related keywords.
@@ -107,6 +112,55 @@ export async function handleUserInput({
         return;
       }
     }
+
+    // 📅 CALENDAR COMMANDS
+if (currentUser && /(calendar|event|schedule)/i.test(lower)) {
+  // Add event
+  if (lower.startsWith("add")) {
+    const match = userText.match(/add (.+?) on (\w+ \d+(?:, \d{4})?) at (\d{1,2}(:\d{2})? ?(am|pm)?)/i);
+    if (match) {
+      const [, title, dateStr, timeStr] = match;
+      const dateTime = new Date(`${dateStr} ${timeStr}`);
+      if (!isNaN(dateTime)) {
+        await addCalendarEvent(currentUser.uid, title.trim(), dateTime.toISOString());
+        const reply = `Scheduled "${title}" on ${dateStr} at ${timeStr}.`;
+        setAssistantText(reply);
+        if (voiceEnabled) await speakFn(reply);
+        return;
+      }
+    }
+    const fallback = `Sorry, I couldn't understand the event date and time. Try something like "Add team meeting on June 25 at 3 PM."`;
+    setAssistantText(fallback);
+    if (voiceEnabled) await speakFn(fallback);
+    return;
+  }
+
+  // View events branch fix:
+if (lower.includes("what's on my calendar") || lower.includes("list") || lower.includes("show")) {
+  const events = await fetchCalendarEvents(currentUser.uid);
+  const reply = events.length > 0
+    ? `You have ${events.length} event(s): ${events.map(e => `"${e.title}" on ${new Date(e.date).toLocaleString()}`).join(", ")}.`
+    : "Your calendar is currently empty.";
+  setAssistantText(reply);
+  if (voiceEnabled) await speakFn(reply);
+  return;
+}
+
+
+  // Delete event
+  if (lower.startsWith("delete")) {
+    const match = userText.match(/delete (.+)/i);
+    if (match) {
+      const title = match[1];
+      await deleteCalendarEventByTitle(currentUser.uid, title.trim());
+      const reply = `Deleted any events titled "${title}".`;
+      setAssistantText(reply);
+      if (voiceEnabled) await speakFn(reply);
+      return;
+    }
+  }
+}
+
 
     // 🤖 OTHERWISE — CEREBRAS STREAMING WITH MEMORY + TIME + NAME CONTEXT
     setAssistantText("");
