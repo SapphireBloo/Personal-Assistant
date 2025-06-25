@@ -33,7 +33,7 @@ export default function App() {
   const [chatHistory, setChatHistory] = useState([]);
   const [user, setUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [widgetsVisible, setWidgetsVisible] = useState(true);
+  const [widgetsVisible, setWidgetsVisible] = useState(false);
   const [userAvatar, setUserAvatar] = useState("default-user.png");
   const [assistantAvatar, setAssistantAvatar] = useState("default-assistant.png");
   const [userProfile, setUserProfile] = useState({
