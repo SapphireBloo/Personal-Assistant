@@ -12,23 +12,31 @@ import {
 import { db } from "../firebase";
 
 export async function addCalendarEvent(uid, title, date) {
-  if (!title.trim() || !date) return;
+  if (!title.trim() || !date) {
+    console.warn("❌ Missing title or date:", { title, date });
+    return;
+  }
 
-  // date here is a Date object or ISO string
-  // Convert to local YYYY-MM-DD string:
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = (d.getMonth() + 1).toString().padStart(2, "0");
-  const day = d.getDate().toString().padStart(2, "0");
-  const dateString = `${year}-${month}-${day}`;
+  const parsedDate = typeof date === "string" ? new Date(date) : date;
+
+  if (isNaN(parsedDate)) {
+    console.error("❌ Invalid date passed to addCalendarEvent:", date);
+    return;
+  }
+
+  console.log("📅 Attempting to add event:", { uid, title, date: parsedDate });
 
   await addDoc(collection(db, "calendarEvents"), {
     uid,
     title: title.trim(),
-    date: dateString, // <-- store only YYYY-MM-DD string
+    date: parsedDate, // use Firestore Timestamp-compatible Date
     createdAt: new Date(),
   });
+
+  console.log("✅ Successfully added event to Firestore.");
 }
+
+
 
 
 // Fetch all calendar events for a user
@@ -55,11 +63,21 @@ export async function deleteCalendarEventByTitle(uid, title) {
 }
 
 
-// Update a calendar event
+
+// ✅ Updated: Update a calendar event
 export async function updateCalendarEvent(eventId, newTitle, newDate) {
   const eventRef = doc(db, "calendarEvents", eventId);
+
+  // Convert to YYYY-MM-DD string for consistency
+  const d = new Date(newDate);
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, "0");
+  const day = d.getDate().toString().padStart(2, "0");
+  const dateString = `${year}-${month}-${day}`;
+
   await updateDoc(eventRef, {
-    title: newTitle,
-    date: new Date(newDate),
+    title: newTitle.trim(),
+    date: dateString,
   });
 }
+
