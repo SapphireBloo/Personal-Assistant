@@ -4,6 +4,7 @@ import { auth } from "../firebase";
 import { fetchCalendarEvents } from "../utils/firebaseCalendar";
 import CalendarEventModal from "./CalendarEventModal";
 import "./CalendarWidget.css";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function CalendarWidget() {
   const today = new Date();
@@ -20,10 +21,16 @@ export default function CalendarWidget() {
     }
   };
 
-  useEffect(() => {
-    refetchEvents();
-  }, []);
 
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      fetchCalendarEvents(user.uid).then(setEvents);
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
   };
