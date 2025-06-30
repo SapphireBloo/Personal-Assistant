@@ -52,6 +52,39 @@ const [showWelcomeModal, setShowWelcomeModal] = useState(true);
     ELEVENLABS_API_KEY,
     ELEVENLABS_VOICE_ID
   );
+// Fade YouTube volume during assistant speech
+useEffect(() => {
+  const player = window.youtubePlayer;
+  if (!player || typeof player.getVolume !== "function") return;
+
+  let volumeInterval = null;
+
+  const fadeVolume = (target, step = 5, delay = 100) => {
+    clearInterval(volumeInterval);
+    volumeInterval = setInterval(() => {
+      const currentVolume = player.getVolume();
+      const direction = currentVolume < target ? 1 : -1;
+      const nextVolume = currentVolume + direction * step;
+
+      if ((direction === 1 && nextVolume >= target) || (direction === -1 && nextVolume <= target)) {
+        player.setVolume(target);
+        clearInterval(volumeInterval);
+      } else {
+        player.setVolume(nextVolume);
+      }
+    }, delay);
+  };
+
+  if (isSpeaking) {
+    fadeVolume(0); // Fade out
+  } else {
+    fadeVolume(100); // Fade in
+  }
+
+  return () => clearInterval(volumeInterval);
+}, [isSpeaking]);
+
+
 
   const cleanProfileData = (data) =>
     Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
